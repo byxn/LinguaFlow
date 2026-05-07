@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@readmind/types": [
+        "../../packages/types/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    ".plasmo/index.d.ts",
+    "*.ts",
+    "*.tsx",
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

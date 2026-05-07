@@ -1,0 +1,32 @@
+.ai-overlay-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  padding: 8px 12px;
+  background: #1e293b;
+  color: #f8fafc;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+}
+
+.ai-overlay-tooltip::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 12px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #1e293b;
+}
+
+.ai-overlay-tooltip .ai-loading {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.ai-overlay-tooltip .ai-error {
+  color: #f87171;
+}

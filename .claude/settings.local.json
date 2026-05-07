@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm run *)",
+      "Bash(tasklist)",
+      "Bash(pnpm --filter @readmind/api dev)",
+      "Bash(curl -s http://localhost:3002/health)",
+      "Bash(curl -s http://localhost:3002/api/user/me)"
+    ]
+  }
+}

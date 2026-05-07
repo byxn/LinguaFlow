@@ -1,0 +1,20 @@
+.ai-translation-wrapper {
+  display: block;
+  margin: 0.5em 0;
+  padding: 0.5em;
+  border-left: 3px solid #3b82f6;
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.ai-original-text {
+  margin: 0 0 0.25em 0;
+  color: #64748b;
+  font-size: 0.9em;
+}
+
+.ai-translated-text {
+  margin: 0;
+  color: #1e293b;
+  line-height: 1.6;
+}

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "declaration": true,
+    "declarationMap": true,
+    "paths": {
+      "@readmind/shared": ["packages/shared/src/index.ts"],
+      "@readmind/types": ["packages/types/src/index.ts"],
+      "@readmind/prompts": ["packages/prompts/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", ".turbo"]
+}

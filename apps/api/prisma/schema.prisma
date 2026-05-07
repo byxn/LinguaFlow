@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  free
+  pro
+  team
+}
+
+enum TranslationMode {
+  bilingual
+  replace
+  hover
+}
+
+enum VocabularyStatus {
+  new
+  learning
+  mastered
+}
+
+enum UsageType {
+  translate
+  explain
+  summarize
+  subtitle
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String?
+  passwordHash String   @map("password_hash")
+  plan         Plan     @default(free)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  settings     UserSettings?
+  vocabulary   Vocabulary[]
+  usageRecords UsageRecord[]
+  subscription Subscription?
+
+  @@map("users")
+}
+
+model UserSettings {
+  id               String          @id @default(uuid())
+  userId           String          @unique @map("user_id")
+  targetLanguage   String          @default("zh-CN") @map("target_language")
+  translationMode  TranslationMode @default(bilingual) @map("translation_mode")
+  userEnglishLevel String?         @map("user_english_level")
+  autoTranslate    Boolean         @default(false) @map("auto_translate")
+  preserveTerms    Boolean         @default(true) @map("preserve_terms")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model Vocabulary {
+  id             String            @id @default(uuid())
+  userId         String            @map("user_id")
+  word           String
+  translation    String
+  phonetic       String?
+  sourceSentence String?            @map("source_sentence")
+  sourceUrl      String?           @map("source_url")
+  sourceTitle    String?           @map("source_title")
+  status         VocabularyStatus  @default(new)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "idx_vocabulary_user_id")
+  @@index([userId, status], name: "idx_vocabulary_user_status")
+  @@map("vocabulary")
+}
+
+model UsageRecord {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  type       UsageType
+  inputChars Int       @map("input_chars")
+  outputChars Int     @map("output_chars")
+  model      String
+  cost       Decimal? @db.Decimal(10, 6)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt], name: "idx_usage_user_created")
+  @@map("usage_records")
+}
+
+model TranslationCache {
+  id             String   @id @default(uuid())
+  sourceHash     String   @unique @map("source_hash")
+  sourceText     String   @db.Text @map("source_text")
+  sourceLanguage String  @map("source_language")
+  targetLanguage String  @map("target_language")
+  translatedText String  @db.Text @map("translated_text")
+  model          String
+  createdAt      DateTime @default(now()) @map("created_at")
+  expiresAt      DateTime? @map("expires_at")
+
+  @@index([sourceHash], name: "idx_cache_source_hash")
+  @@index([expiresAt], name: "idx_cache_expires_at")
+  @@map("translation_cache")
+}
+
+model Subscription {
+  id                   String   @id @default(uuid())
+  userId               String   @unique @map("user_id")
+  stripeCustomerId     String?  @map("stripe_customer_id")
+  stripeSubscriptionId String? @map("stripe_subscription_id")
+  plan                 Plan
+  status               String
+  currentPeriodStart   DateTime? @map("current_period_start")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
