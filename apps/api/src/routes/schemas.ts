@@ -4,6 +4,7 @@ export const TranslateRequestSchema = z.object({
   texts: z.array(z.string()).min(1),
   sourceLanguage: z.string(),
   targetLanguage: z.string(),
+  provider: z.enum(["openai", "deepseek", "deepl", "google"]).optional(),
   context: z
     .object({
       url: z.string().optional(),

@@ -1,12 +1,14 @@
-import type { AIProvider, AIConfig, ModelType } from "./types.ts";
+import type { AIProvider, AIConfig, ProviderType } from "./types.ts";
 import { DeepSeekProvider } from "./deepseek.ts";
 import { OpenAIProvider } from "./openai.ts";
+import { DeepLProvider } from "./deepl.ts";
+import { GoogleProvider } from "./google.ts";
 
-const PROVIDERS: Record<ModelType, new () => AIProvider> = {
+const PROVIDERS: Record<ProviderType, new () => AIProvider> = {
   deepseek: DeepSeekProvider,
   openai: OpenAIProvider,
-  claude: DeepSeekProvider,
-  gemini: DeepSeekProvider,
+  deepl: DeepLProvider,
+  google: GoogleProvider,
 };
 
 export function createProvider(config: AIConfig): AIProvider {
@@ -17,5 +19,7 @@ export function createProvider(config: AIConfig): AIProvider {
   return new ProviderClass();
 }
 
-export { DeepSeekProvider, OpenAIProvider } from "./deepseek.ts";
-export { OpenAIProvider as OpenAIProvider2 } from "./openai.ts";
+export { DeepSeekProvider } from "./deepseek.ts";
+export { OpenAIProvider } from "./openai.ts";
+export { DeepLProvider } from "./deepl.ts";
+export { GoogleProvider } from "./google.ts";

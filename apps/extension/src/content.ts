@@ -3,6 +3,7 @@ import {
   scanTextNodes,
   TRANSLATED_MARK
 } from "./inject/domScanner.ts"
+import { initContentFeatures, hidePopup, hideTrigger, toggleSelectionEnabled } from "./content/features.ts"
 
 let isTranslating = false
 let translationEnabled = false
@@ -161,6 +162,10 @@ function handleMessage(message: { type: string; payload?: unknown }) {
       }
       break
 
+    case "TOGGLE_SELECTION":
+      toggleSelectionEnabled()
+      break
+
     case "GET_STATUS":
       void chrome.runtime.sendMessage({
         type: "STATUS_RESPONSE",
@@ -266,6 +271,9 @@ function showHoverTooltip(element: HTMLElement, translatedText: string) {
   setTimeout(() => tooltip.remove(), 3000)
 }
 
+// 初始化选中文本翻译功能（TTS、触发按钮、生词本）
+initContentFeatures()
+
 chrome.runtime.onMessage.addListener(handleMessage)
 
 document.addEventListener(
@@ -274,6 +282,14 @@ document.addEventListener(
     translationEnabled = event.detail.translationEnabled
   }) as EventListener
 )
+
+// 关闭选文翻译弹窗当整页翻译开启时
+document.addEventListener("translation-state-change", ((event: CustomEvent) => {
+  if (event.detail.translationEnabled) {
+    hidePopup()
+    hideTrigger()
+  }
+}) as EventListener)
 
 setupMutationObserver()
 

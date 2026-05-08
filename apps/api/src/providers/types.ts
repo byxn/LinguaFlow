@@ -9,6 +9,7 @@ export interface TranslateOptions {
   targetLanguage?: string;
   preserveTerms?: boolean;
   apiKey?: string;
+  provider?: ProviderType;
 }
 
 export interface TranslateResult {
@@ -21,6 +22,8 @@ export interface ExplainOptions {
   context?: string;
   targetLanguage?: string;
   userLevel?: string;
+  apiKey?: string;
+  provider?: ProviderType;
 }
 
 export interface ExplainResult {
@@ -30,10 +33,10 @@ export interface ExplainResult {
   simplifiedEnglish?: string;
 }
 
-export type ModelType = "openai" | "deepseek" | "claude" | "gemini";
+export type ProviderType = "openai" | "deepseek" | "deepl" | "google";
 
 export interface AIConfig {
-  provider: ModelType;
+  provider: ProviderType;
   apiKey?: string;
   model?: string;
 }

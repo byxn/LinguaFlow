@@ -1,0 +1,6 @@
+{
+  "provider": "deepseek",
+  "apiKeys": {
+    "deepseek": "sk-test-123"
+  }
+}

@@ -44,6 +44,7 @@ translateRoute.post("/translate", async (c) => {
           targetLanguage: validated.targetLanguage,
           preserveTerms: validated.options?.preserveTerms,
           apiKey, // 传递 API Key
+          provider: validated.provider,
         });
 
         return {

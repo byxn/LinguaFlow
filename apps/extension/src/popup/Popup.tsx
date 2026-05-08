@@ -1,36 +1,106 @@
-import { usePopupState } from "./usePopupState.ts";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// Web 应用地址 - 开发环境默认 localhost:3000
-// 生产环境需要修改为实际部署的地址
 const WEB_APP_URL = "http://localhost:3000";
+const SETTINGS_URL = `${WEB_APP_URL}/settings`;
+
+const PROVIDERS = [
+  { id: "deepseek", name: "DeepSeek", icon: "🔮" },
+  { id: "openai", name: "OpenAI", icon: "🤖" },
+  { id: "deepl", name: "DeepL", icon: "🌐" },
+  { id: "google", name: "Google", icon: "🌍" },
+] as const;
+
+type ProviderId = typeof PROVIDERS[number]["id"];
+
+interface Settings {
+  provider: ProviderId;
+  apiKeys: Record<ProviderId, string>;
+}
 
 export default function Popup() {
-  const { pageStatus, settings, loading, error, toggleTranslation, toggleHover, apiKey, saveApiKey } =
-    usePopupState();
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState(apiKey);
+  const [settings, setSettings] = useState<Settings>({
+    provider: "deepseek",
+    apiKeys: { deepseek: "", openai: "", deepl: "", google: "" },
+  });
+  const [hoverEnabled, setHoverEnabled] = useState(false);
+  const [selectionEnabled, setSelectionEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // 从 API 读取设置（与 Web 设置页面同步）
+    fetch("http://localhost:3002/api/extension/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.provider && data.apiKeys) {
+          setSettings(data);
+        }
+      })
+      .catch(() => {
+        // 回退到 chrome.storage.local
+        chrome.storage.local.get(["settings"], (result) => {
+          if (result.settings) {
+            setSettings(result.settings);
+          }
+        });
+      })
+      .finally(() => setLoading(false));
+
+    chrome.storage.local.get(["hoverEnabled"], (result) => {
+      setHoverEnabled(result.hoverEnabled ?? false);
+    });
+    chrome.storage.local.get(["selectionEnabled"], (result) => {
+      setSelectionEnabled(result.selectionEnabled ?? false);
+    });
+  }, []);
+
+  const handleProviderChange = async (newProvider: ProviderId) => {
+    const newSettings = { ...settings, provider: newProvider };
+    setSettings(newSettings);
+    chrome.storage.local.set({ settings: newSettings });
+
+    // 同时同步到 API
+    try {
+      await fetch("http://localhost:3002/api/extension/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSettings),
+      });
+    } catch (e) {
+      console.error("Failed to sync provider to API:", e);
+    }
+  };
+
+  const toggleHover = () => {
+    const newState = !hoverEnabled;
+    setHoverEnabled(newState);
+    chrome.storage.local.set({ hoverEnabled: newState });
+    chrome.runtime.sendMessage({ type: "TOGGLE_HOVER" });
+  };
+
+  const toggleSelection = () => {
+    const newState = !selectionEnabled;
+    setSelectionEnabled(newState);
+    chrome.storage.local.set({ selectionEnabled: newState });
+    chrome.runtime.sendMessage({ type: "TOGGLE_SELECTION" });
+  };
+
+  const openSettings = () => {
+    chrome.tabs.create({ url: SETTINGS_URL });
+  };
+
+  const hasApiKey = (pId: ProviderId) => {
+    return Boolean(settings.apiKeys[pId]);
+  };
+
+  const currentProvider = PROVIDERS.find((p) => p.id === settings.provider)!;
 
   if (loading) {
     return (
       <div className="popup-container">
-        <div className="loading">Loading...</div>
+        <div className="loading">加载中...</div>
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="popup-container">
-        <div className="error">{error}</div>
-      </div>
-    );
-  }
-
-  const handleSaveApiKey = () => {
-    saveApiKey(tempApiKey);
-    setShowApiKeyInput(false);
-  };
 
   return (
     <div className="popup-container">
@@ -39,77 +109,81 @@ export default function Popup() {
         <div className="subtitle">AI 阅读翻译助手</div>
       </div>
 
-      {!apiKey && !showApiKeyInput && (
-        <div className="api-key-warning">
-          ⚠️ 请先配置 DeepSeek API Key
-          <button onClick={() => setShowApiKeyInput(true)}>去配置</button>
+      {/* Provider 选择 */}
+      <div className="provider-card">
+        <div className="provider-label">选择翻译引擎</div>
+        <div className="provider-grid">
+          {PROVIDERS.map((p) => {
+            const configured = hasApiKey(p.id);
+            return (
+              <button
+                key={p.id}
+                onClick={() => handleProviderChange(p.id)}
+                className={`provider-btn ${settings.provider === p.id ? "active" : ""}`}
+              >
+                <span className="provider-icon">{p.icon}</span>
+                <span className="provider-name">{p.name}</span>
+                {!configured && <span className="provider-dot"></span>}
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
-      {showApiKeyInput && (
-        <div className="api-key-section">
-          <input
-            type="password"
-            value={tempApiKey}
-            onChange={(e) => setTempApiKey(e.target.value)}
-            placeholder="sk-xxxxxxxxxxxxxxxx"
-            className="api-key-input"
-          />
-          <button onClick={handleSaveApiKey} className="api-key-save">保存</button>
-          <button onClick={() => setShowApiKeyInput(false)} className="api-key-cancel">取消</button>
-        </div>
-      )}
-
-      <div className="status-card">
-        <div className="status-row">
-          <span className="status-label">API Key</span>
-          <span className={`status-value ${apiKey ? "active" : "inactive"}`}>
-            {apiKey ? "✓ 已配置" : "✗ 未配置"}
-          </span>
-        </div>
-
-        <div className="status-row">
-          <span className="status-label">页面语言</span>
-          <span className="status-value">{pageStatus?.language || "Unknown"}</span>
-        </div>
-
-        <div className="status-row">
-          <span className="status-label">翻译</span>
+      {/* 功能开关 */}
+      <div className="feature-card">
+        <div className="feature-row">
+          <div className="feature-info">
+            <span className="feature-icon">📖</span>
+            <span className="feature-name">沉浸翻译</span>
+          </div>
           <button
-            onClick={toggleTranslation}
-            className={`toggle-btn ${pageStatus?.translationEnabled ? "on" : "off"}`}
-            disabled={!apiKey}
+            onClick={() => {
+              chrome.runtime.sendMessage({ type: "TOGGLE_TRANSLATION" });
+            }}
+            className="action-btn"
           >
-            {pageStatus?.translationEnabled ? "ON" : "OFF"}
+            开始翻译
           </button>
         </div>
-
-        <div className="status-row">
-          <span className="status-label">悬停翻译</span>
+        <div className="feature-row">
+          <div className="feature-info">
+            <span className="feature-icon">👆</span>
+            <span className="feature-name">悬停翻译</span>
+          </div>
           <button
             onClick={toggleHover}
-            className={`toggle-btn ${pageStatus?.hoverEnabled ? "on" : "off"}`}
-            disabled={!apiKey}
+            className={`toggle-btn ${hoverEnabled ? "on" : "off"}`}
           >
-            {pageStatus?.hoverEnabled ? "ON" : "OFF"}
+            {hoverEnabled ? "ON" : "OFF"}
+          </button>
+        </div>
+        <div className="feature-row">
+          <div className="feature-info">
+            <span className="feature-icon">✍️</span>
+            <span className="feature-name">划词翻译</span>
+          </div>
+          <button
+            onClick={toggleSelection}
+            className={`toggle-btn ${selectionEnabled ? "on" : "off"}`}
+          >
+            {selectionEnabled ? "ON" : "OFF"}
           </button>
         </div>
       </div>
 
-      <div className="settings-section">
-        <button className="settings-btn" onClick={() => setShowApiKeyInput(true)}>
-          🔑 API Key {apiKey ? "✓" : ""}
+      {/* 底部按钮 */}
+      <div className="nav-section">
+        <button className="nav-btn" onClick={openSettings}>
+          ⚙️ API 设置
         </button>
         <button className="nav-btn" onClick={() => chrome.tabs.create({ url: `${WEB_APP_URL}/vocabulary` })}>
           📚 生词本
         </button>
-        <button className="nav-btn" onClick={() => chrome.tabs.create({ url: `${WEB_APP_URL}/billing` })}>
-          💳 订阅
-        </button>
       </div>
 
       <div className="footer">
-        v0.1.0 • 点击开关启用功能
+        {currentProvider.icon} {currentProvider.name}
       </div>
     </div>
   );

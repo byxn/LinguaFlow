@@ -10,6 +10,7 @@ const ExplainRequestSchema = z.object({
   context: z.string().optional(),
   targetLanguage: z.string(),
   userLevel: z.string().optional(),
+  provider: z.enum(["openai", "deepseek", "deepl", "google"]).optional(),
 });
 
 explainRoute.post("/explain", async (c) => {
@@ -21,6 +22,7 @@ explainRoute.post("/explain", async (c) => {
       context: validated.context,
       targetLanguage: validated.targetLanguage,
       userLevel: validated.userLevel,
+      provider: validated.provider,
     });
 
     return c.json({

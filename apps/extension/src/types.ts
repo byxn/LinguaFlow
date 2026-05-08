@@ -36,10 +36,12 @@ export interface ExtensionMessage {
     | "EXPLAIN"
     | "TOGGLE_TRANSLATION"
     | "TOGGLE_HOVER"
+    | "TOGGLE_SELECTION"
     | "SHOW_HOVER"
     | "GET_SETTINGS"
     | "UPDATE_SETTINGS"
-    | "GET_STATUS";
+    | "GET_STATUS"
+    | "SAVE_SETTINGS";
   payload?: unknown;
 }
 

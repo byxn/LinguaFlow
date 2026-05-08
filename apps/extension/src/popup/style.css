@@ -7,113 +7,119 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 14px;
   }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  body {
-    margin: 0;
-    padding: 0;
-  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; }
 }
 
 .popup-container {
-  @apply w-[280px] p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg;
+  @apply w-[300px] p-4 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-xl;
 }
 
 .popup-header {
   @apply text-center mb-4;
 }
-
 .popup-header h1 {
-  @apply text-white text-xl font-semibold mb-1;
+  @apply text-white text-xl font-bold mb-1;
 }
-
 .subtitle {
-  @apply text-white/80 text-xs;
+  @apply text-slate-400 text-xs;
 }
 
-.status-card {
-  @apply bg-white/95 rounded-lg p-3 mb-3 shadow-md;
+/* Provider Card */
+.provider-card {
+  @apply bg-slate-700/50 rounded-xl p-3 mb-3 border border-slate-600/50;
+}
+.provider-label {
+  @apply text-slate-400 text-xs font-medium mb-2;
+}
+.provider-grid {
+  @apply grid grid-cols-4 gap-2;
+}
+.provider-btn {
+  @apply flex flex-col items-center p-2 rounded-lg bg-slate-600/50 border border-slate-500/30 text-slate-300 transition-all duration-200;
+}
+.provider-btn:hover {
+  @apply bg-slate-500/50 border-slate-400/50;
+}
+.provider-btn.active {
+  @apply bg-indigo-600/80 border-indigo-500 text-white;
+}
+.provider-icon {
+  @apply text-xl mb-0.5;
+}
+.provider-name {
+  @apply text-[10px] font-medium;
 }
 
-.status-row {
-  @apply flex justify-between items-center py-1.5;
+/* Status Bar */
+.status-bar {
+  @apply flex items-center gap-2 px-3 py-2 bg-slate-700/30 rounded-lg mb-3 text-sm;
+}
+.status-icon {
+  @apply text-lg;
+}
+.status-text {
+  @apply text-white flex-1;
+}
+.status-badge {
+  @apply text-xs px-2 py-0.5 rounded-full;
+}
+.status-badge.ready {
+  @apply bg-emerald-500/20 text-emerald-400;
+}
+.status-badge.warning {
+  @apply bg-amber-500/20 text-amber-400;
 }
 
-.status-row:not(:last-child) {
-  @apply border-b border-gray-100;
+/* Feature Card */
+.feature-card {
+  @apply bg-slate-700/50 rounded-xl p-3 mb-3 border border-slate-600/50;
+}
+.feature-row {
+  @apply flex justify-between items-center py-2;
+}
+.feature-row:not(:last-child) {
+  @apply border-b border-slate-600/30;
+}
+.feature-info {
+  @apply flex items-center gap-2;
+}
+.feature-icon {
+  @apply text-lg;
+}
+.feature-name {
+  @apply text-slate-200 text-sm;
 }
 
-.status-label {
-  @apply text-gray-600 text-sm;
-}
-
-.status-value {
-  @apply font-medium text-gray-800;
-}
-
-.status-value.active {
-  @apply text-emerald-500;
-}
-
-.status-value.inactive {
-  @apply text-gray-400;
-}
-
+/* Toggle Button */
 .toggle-btn {
-  @apply px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200;
+  @apply px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all duration-200;
 }
-
 .toggle-btn.on {
-  @apply bg-emerald-500 text-white;
+  @apply bg-emerald-500 text-white shadow-lg shadow-emerald-500/30;
 }
-
 .toggle-btn.off {
-  @apply bg-gray-200 text-gray-600;
+  @apply bg-slate-600 text-slate-400;
 }
-
-.toggle-btn:hover {
+.toggle-btn:hover:not(:disabled) {
   @apply scale-105;
 }
-
-.settings-btn {
-  @apply w-full py-2.5 bg-white/20 border border-white/30 rounded-lg text-white text-sm font-medium transition-all duration-200 hover:bg-white/30;
+.toggle-btn:disabled {
+  @apply opacity-40 cursor-not-allowed;
 }
 
+/* Navigation */
+.nav-section {
+  @apply flex gap-2 mb-3;
+}
 .nav-btn {
-  @apply w-full py-2.5 mt-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm font-medium transition-all duration-200 hover:bg-white/20 flex items-center justify-center gap-2;
+  @apply flex-1 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-300 text-sm font-medium transition-all hover:bg-slate-600/50 hover:border-slate-500/50 items-center justify-center gap-2;
 }
 
 .footer {
-  @apply text-center mt-3 text-white/60 text-xs;
+  @apply text-center text-slate-500 text-xs;
 }
 
-.api-key-warning {
-  @apply bg-amber-500/90 text-white text-xs p-2 rounded-lg mb-3 flex items-center justify-between;
-}
-
-.api-key-warning button {
-  @apply bg-white/20 px-2 py-1 rounded text-white text-xs hover:bg-white/30;
-}
-
-.api-key-section {
-  @apply bg-white/95 rounded-lg p-3 mb-3 shadow-md;
-}
-
-.api-key-input {
-  @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500;
-}
-
-.api-key-save {
-  @apply w-full bg-emerald-500 text-white py-2 rounded-lg text-sm font-medium mb-1 hover:bg-emerald-600;
-}
-
-.api-key-cancel {
-  @apply w-full bg-gray-200 text-gray-600 py-1.5 rounded-lg text-sm hover:bg-gray-300;
-}
-
-.toggle-btn:disabled {
-  @apply opacity-50 cursor-not-allowed;
+.loading {
+  @apply text-white text-center py-8;
 }

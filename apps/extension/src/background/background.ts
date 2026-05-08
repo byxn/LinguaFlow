@@ -5,9 +5,7 @@ import type {
   TranslationRequest,
 } from "../types.ts";
 
-// API 地址 - 开发环境默认 localhost:3002
-// 生产环境可通过设置 PLASMO_PUBLIC_API_URL 环境变量覆盖
-// 例如: PLASMO_PUBLIC_API_URL=https://api.example.com
+// API 地址
 const API_BASE = "http://localhost:3002/api";
 
 const debounceMap = new Map<string, number>();
@@ -16,17 +14,58 @@ const DEBOUNCE_DELAY = 300;
 // 跟踪各tab的悬停模式状态
 const hoverModeMap = new Map<number, boolean>();
 
-// 获取存储的 API Key
-async function getApiKey(): Promise<string> {
+// Provider 类型
+type ProviderType = "deepseek" | "openai" | "deepl" | "google";
+
+interface ExtensionSettings {
+  provider: ProviderType;
+  apiKeys: {
+    deepseek?: string;
+    openai?: string;
+    deepl?: string;
+    google?: string;
+  };
+}
+
+// 获取存储的设置
+async function getSettings(): Promise<ExtensionSettings> {
+  // 优先从 API 获取（Web 页面保存的设置）
+  try {
+    const response = await fetch(`${API_BASE}/extension/settings`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.provider && data.apiKeys) {
+        // 保存到本地缓存
+        chrome.storage.local.set({ settings: data });
+        return data as ExtensionSettings;
+      }
+    }
+  } catch {
+    // API 不可用，使用本地存储
+  }
+
+  // 回退到 chrome.storage.local
   return new Promise((resolve) => {
-    chrome.storage.local.get(["deepseekApiKey"], (result) => {
-      resolve(result.deepseekApiKey || "");
+    chrome.storage.local.get(["settings"], (result) => {
+      const defaults: ExtensionSettings = {
+        provider: "deepseek",
+        apiKeys: {},
+      };
+      resolve({ ...defaults, ...result.settings });
     });
   });
 }
 
-// 发送翻译请求（带 API Key）
-async function fetchTranslation(payload: TranslationRequest, apiKey: string) {
+// 获取当前 provider 和对应的 API Key
+async function getProviderConfig(): Promise<{ provider: ProviderType; apiKey: string }> {
+  const settings = await getSettings();
+  const { provider, apiKeys } = settings;
+  const apiKey = apiKeys[provider] || "";
+  return { provider, apiKey };
+}
+
+// 发送翻译请求
+async function fetchTranslation(payload: TranslationRequest, provider: ProviderType, apiKey: string) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
@@ -34,10 +73,13 @@ async function fetchTranslation(payload: TranslationRequest, apiKey: string) {
     headers["Authorization"] = `Bearer ${apiKey}`;
   }
 
+  // 添加 provider 到 payload
+  const requestPayload = { ...payload, provider };
+
   const response = await fetch(`${API_BASE}/translate`, {
     method: "POST",
     headers,
-    body: JSON.stringify(payload),
+    body: JSON.stringify(requestPayload),
   });
   return response.json();
 }
@@ -49,22 +91,22 @@ chrome.runtime.onMessage.addListener(
       switch (message.type) {
         case "TRANSLATE": {
           const payload = message.payload as TranslationRequest;
-          const apiKey = await getApiKey();
-          const data = await fetchTranslation(payload, apiKey);
+          const { provider, apiKey } = await getProviderConfig();
+          const data = await fetchTranslation(payload, provider, apiKey);
           return { success: true, data };
         }
 
         case "SHOW_HOVER": {
           const { text } = message.payload as { text: string };
           console.log("[Background] SHOW_HOVER:", text.substring(0, 30));
-          const apiKey = await getApiKey();
+          const { provider, apiKey } = await getProviderConfig();
           try {
             const data = await fetchTranslation({
               texts: [text],
               sourceLanguage: "en",
               targetLanguage: "zh-CN",
               options: { preserveTerms: true }
-            }, apiKey);
+            }, provider, apiKey);
             console.log("[Background] 翻译结果:", data);
             const translatedText = data.items?.[0]?.translatedText || text;
             return { success: true, data: { translatedText } };
@@ -110,6 +152,23 @@ chrome.runtime.onMessage.addListener(
             hoverModeMap.set(tab.id, !currentState);
             await chrome.tabs.sendMessage(tab.id, message);
           }
+          return { success: true };
+        }
+
+        case "TOGGLE_SELECTION": {
+          const [tab] = await chrome.tabs.query({
+            active: true,
+            currentWindow: true,
+          });
+          if (tab.id) {
+            await chrome.tabs.sendMessage(tab.id, message);
+          }
+          return { success: true };
+        }
+
+        case "SAVE_SETTINGS": {
+          const { settings } = message.payload as { settings: ExtensionSettings };
+          chrome.storage.local.set({ settings });
           return { success: true };
         }
 
