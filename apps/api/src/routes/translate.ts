@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { TranslateRequestSchema } from "./schemas.ts";
 import { createPipeline } from "../pipeline/index.ts";
 import { AIOrchestrator } from "../orchestrator/index.ts";
+import { recordUsage } from "../services/index.ts";
 
 const translateRoute = new Hono();
 
@@ -12,6 +13,10 @@ translateRoute.post("/translate", async (c) => {
   try {
     const body = await c.req.json();
     const validated = TranslateRequestSchema.parse(body);
+
+    // 从 Authorization header 提取 API Key
+    const authHeader = c.req.header("Authorization") || "";
+    const apiKey = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
     const pipelineContext = {
       sourceLanguage: validated.sourceLanguage,
@@ -38,6 +43,7 @@ translateRoute.post("/translate", async (c) => {
           sourceLanguage: validated.sourceLanguage,
           targetLanguage: validated.targetLanguage,
           preserveTerms: validated.options?.preserveTerms,
+          apiKey, // 传递 API Key
         });
 
         return {
@@ -51,6 +57,9 @@ translateRoute.post("/translate", async (c) => {
 
     const totalInput = validated.texts.join("").length;
     const totalOutput = translatedResults.map((i) => i.translatedText).join("").length;
+
+    // 记录使用量
+    recordUsage(totalInput, totalOutput);
 
     return c.json({
       items: translatedResults,

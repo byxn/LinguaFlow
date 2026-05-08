@@ -1,4 +1,12 @@
-import type { UserSettings } from "@readmind/types";
+// UserSettings 定义
+export interface UserSettings {
+  userId?: string;
+  targetLanguage: "zh-CN" | "en" | "ja" | "ko";
+  translationMode: "bilingual" | "replace" | "hover";
+  userEnglishLevel?: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+  autoTranslate: boolean;
+  preserveTerms: boolean;
+}
 
 export interface TranslationRequest {
   texts: string[];
@@ -27,6 +35,8 @@ export interface ExtensionMessage {
     | "TRANSLATE"
     | "EXPLAIN"
     | "TOGGLE_TRANSLATION"
+    | "TOGGLE_HOVER"
+    | "SHOW_HOVER"
     | "GET_SETTINGS"
     | "UPDATE_SETTINGS"
     | "GET_STATUS";
@@ -47,4 +57,5 @@ export interface PageStatus {
   language: string;
   isTranslatable: boolean;
   translationEnabled: boolean;
+  hoverEnabled: boolean;
 }

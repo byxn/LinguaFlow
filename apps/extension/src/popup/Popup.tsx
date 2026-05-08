@@ -1,117 +1,116 @@
 import { usePopupState } from "./usePopupState.ts";
+import { useState } from "react";
+
+// Web 应用地址 - 开发环境默认 localhost:3000
+// 生产环境需要修改为实际部署的地址
+const WEB_APP_URL = "http://localhost:3000";
 
 export default function Popup() {
-  const { pageStatus, settings, loading, error, toggleTranslation, toggleHover } =
+  const { pageStatus, settings, loading, error, toggleTranslation, toggleHover, apiKey, saveApiKey } =
     usePopupState();
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState(apiKey);
 
   if (loading) {
     return (
-      <div className="p-4 w-72">
-        <div className="text-gray-500 text-sm">Loading...</div>
+      <div className="popup-container">
+        <div className="loading">Loading...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 w-72">
-        <div className="text-red-500 text-sm">{error}</div>
+      <div className="popup-container">
+        <div className="error">{error}</div>
       </div>
     );
   }
 
+  const handleSaveApiKey = () => {
+    saveApiKey(tempApiKey);
+    setShowApiKeyInput(false);
+  };
+
   return (
-    <div className="p-4 w-72 font-sans bg-white">
-      <h1 className="text-lg font-bold mb-4 text-gray-800">LinguaFlow</h1>
+    <div className="popup-container">
+      <div className="popup-header">
+        <h1>ReadMind</h1>
+        <div className="subtitle">AI 阅读翻译助手</div>
+      </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Page Language:</span>
-          <span className="text-sm font-medium text-gray-800">
-            {pageStatus?.language || "Unknown"}
+      {!apiKey && !showApiKeyInput && (
+        <div className="api-key-warning">
+          ⚠️ 请先配置 DeepSeek API Key
+          <button onClick={() => setShowApiKeyInput(true)}>去配置</button>
+        </div>
+      )}
+
+      {showApiKeyInput && (
+        <div className="api-key-section">
+          <input
+            type="password"
+            value={tempApiKey}
+            onChange={(e) => setTempApiKey(e.target.value)}
+            placeholder="sk-xxxxxxxxxxxxxxxx"
+            className="api-key-input"
+          />
+          <button onClick={handleSaveApiKey} className="api-key-save">保存</button>
+          <button onClick={() => setShowApiKeyInput(false)} className="api-key-cancel">取消</button>
+        </div>
+      )}
+
+      <div className="status-card">
+        <div className="status-row">
+          <span className="status-label">API Key</span>
+          <span className={`status-value ${apiKey ? "active" : "inactive"}`}>
+            {apiKey ? "✓ 已配置" : "✗ 未配置"}
           </span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Translatable:</span>
-          <span
-            className={`text-sm ${
-              pageStatus?.isTranslatable ? "text-green-600" : "text-gray-400"
-            }`}
-          >
-            {pageStatus?.isTranslatable ? "Yes" : "No"}
-          </span>
+        <div className="status-row">
+          <span className="status-label">页面语言</span>
+          <span className="status-value">{pageStatus?.language || "Unknown"}</span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Translation:</span>
+        <div className="status-row">
+          <span className="status-label">翻译</span>
           <button
             onClick={toggleTranslation}
-            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-              pageStatus?.translationEnabled
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
+            className={`toggle-btn ${pageStatus?.translationEnabled ? "on" : "off"}`}
+            disabled={!apiKey}
           >
             {pageStatus?.translationEnabled ? "ON" : "OFF"}
           </button>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Hover Mode:</span>
+        <div className="status-row">
+          <span className="status-label">悬停翻译</span>
           <button
             onClick={toggleHover}
-            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-              settings?.autoTranslate
-                ? "bg-purple-500 text-white"
-                : "bg-gray-200 text-gray-700"
-            }`}
+            className={`toggle-btn ${pageStatus?.hoverEnabled ? "on" : "off"}`}
+            disabled={!apiKey}
           >
-            {settings?.autoTranslate ? "ON" : "OFF"}
+            {pageStatus?.hoverEnabled ? "ON" : "OFF"}
           </button>
-        </div>
-
-        <hr className="my-3 border-gray-200" />
-
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Target:</span>
-          <select
-            className="text-sm border border-gray-300 rounded px-2 py-1"
-            defaultValue={settings?.targetLanguage || "zh-CN"}
-          >
-            <option value="zh-CN">中文</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-          </select>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Preserve Terms:</span>
-          <span className="text-sm">
-            {settings?.preserveTerms ? "Yes" : "No"}
-          </span>
-        </div>
-
-        <hr className="my-3 border-gray-200" />
-
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Status:</span>
-          <span
-            className={`text-sm ${
-              pageStatus?.translationEnabled
-                ? "text-green-600"
-                : "text-gray-400"
-            }`}
-          >
-            {pageStatus?.translationEnabled ? "Active" : "Inactive"}
-          </span>
         </div>
       </div>
 
-      <button className="mt-4 w-full py-2 px-4 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 transition-colors">
-        Settings
-      </button>
+      <div className="settings-section">
+        <button className="settings-btn" onClick={() => setShowApiKeyInput(true)}>
+          🔑 API Key {apiKey ? "✓" : ""}
+        </button>
+        <button className="nav-btn" onClick={() => chrome.tabs.create({ url: `${WEB_APP_URL}/vocabulary` })}>
+          📚 生词本
+        </button>
+        <button className="nav-btn" onClick={() => chrome.tabs.create({ url: `${WEB_APP_URL}/billing` })}>
+          💳 订阅
+        </button>
+      </div>
+
+      <div className="footer">
+        v0.1.0 • 点击开关启用功能
+      </div>
     </div>
   );
 }

@@ -6,6 +6,7 @@ interface PopupState {
   settings: UserSettings | null;
   loading: boolean;
   error: string | null;
+  apiKey: string;
 }
 
 export function usePopupState() {
@@ -14,62 +15,70 @@ export function usePopupState() {
     settings: null,
     loading: true,
     error: null,
+    apiKey: "",
   });
 
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tab = tabs[0];
-      if (tab.id) {
-        chrome.tabs.sendMessage(
-          tab.id,
-          { type: "GET_STATUS" },
-          (response) => {
-            if (response?.success && response.data) {
-              setState({
-                pageStatus: response.data.pageStatus,
-                settings: response.data.settings,
-                loading: false,
-                error: null,
-              });
-            } else {
-              setState((prev) => ({
-                ...prev,
-                loading: false,
-                error: "Failed to get page status",
-              }));
-            }
-          }
-        );
+    // 获取状态和 API Key
+    chrome.runtime.sendMessage(
+      { type: "GET_STATUS" },
+      (response) => {
+        if (response?.success && response.data) {
+          setState((prev) => ({
+            ...prev,
+            pageStatus: response.data.pageStatus,
+            settings: response.data.settings,
+            loading: false,
+            error: null,
+          }));
+        } else {
+          setState((prev) => ({
+            ...prev,
+            loading: false,
+            error: response?.error?.message || "Failed to get page status",
+          }));
+        }
+      }
+    );
+
+    // 从 storage 加载 API Key
+    chrome.storage.local.get(["deepseekApiKey"], (result) => {
+      if (result.deepseekApiKey) {
+        setState((prev) => ({ ...prev, apiKey: result.deepseekApiKey }));
       }
     });
   }, []);
 
   const toggleTranslation = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tab = tabs[0];
-      if (tab.id) {
-        chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_TRANSLATION" });
-        setState((prev) => ({
-          ...prev,
-          pageStatus: prev.pageStatus
-            ? {
-                ...prev.pageStatus,
-                translationEnabled: !prev.pageStatus.translationEnabled,
-              }
-            : null,
-        }));
-      }
-    });
+    chrome.runtime.sendMessage({ type: "TOGGLE_TRANSLATION" });
+    setState((prev) => ({
+      ...prev,
+      pageStatus: prev.pageStatus
+        ? {
+            ...prev.pageStatus,
+            translationEnabled: !prev.pageStatus.translationEnabled,
+          }
+        : null,
+    }));
   };
 
   const toggleHover = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tab = tabs[0];
-      if (tab.id) {
-        chrome.tabs.sendMessage(tab.id, { type: "TOGGLE_HOVER" });
-      }
-    });
+    chrome.runtime.sendMessage({ type: "TOGGLE_HOVER" });
+    setState((prev) => ({
+      ...prev,
+      pageStatus: prev.pageStatus
+        ? {
+            ...prev.pageStatus,
+            hoverEnabled: !prev.pageStatus.hoverEnabled,
+          }
+        : null,
+    }));
   };
 
-  return { ...state, toggleTranslation, toggleHover };
+  const saveApiKey = (key: string) => {
+    chrome.storage.local.set({ deepseekApiKey: key });
+    setState((prev) => ({ ...prev, apiKey: key }));
+  };
+
+  return { ...state, toggleTranslation, toggleHover, saveApiKey };
 }

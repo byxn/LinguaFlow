@@ -1,4 +1,4 @@
-import type { AIProvider, AIConfig, ModelType } from "../providers/types.ts";
+import type { AIProvider, AIConfig, ModelType, TranslateOptions } from "../providers/types.ts";
 import { createProvider } from "../providers/index.ts";
 
 export interface RoutingConfig {
@@ -29,7 +29,7 @@ export class AIOrchestrator {
     }
   }
 
-  async translate(text: string, options?: Parameters<AIProvider["translate"]>[1]) {
+  async translate(text: string, options?: TranslateOptions) {
     const provider = this.providers.get(this.routing.translate)!;
     return provider.translate(text, options);
   }

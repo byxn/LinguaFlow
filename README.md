@@ -143,6 +143,175 @@ readmind/
 
 ---
 
+## 扩展消息架构
+
+### 3 层消息传递
+
+扩展采用 **Popup → Background → Content Script** 的消息路由架构：
+
+```
+┌─────────────┐     chrome.runtime.sendMessage      ┌──────────────────┐
+│   Popup     │ ──────────────────────────────────► │   Background     │
+│  (弹窗 UI)  │                                     │  (Service Worker)│
+└─────────────┘                                     └────────┬─────────┘
+                                                             │
+                                                    chrome.tabs.sendMessage
+                                                             │
+                                                             ▼
+                                                    ┌──────────────────┐
+                                                    │  Content Script  │
+                                                    │   (注入到网页)    │
+                                                    └──────────────────┘
+```
+
+### 消息类型定义
+
+所有消息类型在 [apps/extension/src/types.ts](apps/extension/src/types.ts) 中定义：
+
+```typescript
+export interface ExtensionMessage {
+  type:
+    | "TRANSLATE"           // 翻译文本
+    | "EXPLAIN"            // AI 解释
+    | "TOGGLE_TRANSLATION"  // 开关翻译模式
+    | "TOGGLE_HOVER"       // 开关悬停翻译
+    | "SHOW_HOVER"         // 显示悬停翻译
+    | "GET_SETTINGS"       // 获取设置
+    | "UPDATE_SETTINGS"    // 更新设置
+    | "GET_STATUS";        // 获取状态
+  payload?: unknown;
+}
+```
+
+### Background 消息路由
+
+[background.ts](apps/extension/src/background/background.ts) 是消息路由中心：
+
+| 消息类型 | 处理逻辑 |
+|---------|---------|
+| `TRANSLATE` | 转发给 API `/api/translate` |
+| `SHOW_HOVER` | 转发给 API `/api/translate`，返回翻译结果 |
+| `TOGGLE_TRANSLATION` | 转发给 Content Script 切换翻译模式 |
+| `TOGGLE_HOVER` | 更新 hoverModeMap 状态，转发给 Content Script |
+| `GET_STATUS` | 返回当前 tab 的翻译/悬停状态 |
+
+### Content Script 状态管理
+
+[content.ts](apps/extension/src/content.ts) 管理页面翻译状态：
+
+```typescript
+let translationEnabled = false;  // 翻译模式
+let isHoverMode = false;        // 悬停模式
+const translatedNodes = new Map<Text, TranslationState>();  // 已翻译节点
+```
+
+---
+
+## 开发指南
+
+### 目录结构
+
+```
+apps/extension/src/
+├── background/      # Service Worker (后台消息路由)
+├── content.ts       # Content Script (注入到网页)
+├── popup/           # 弹窗 UI
+│   ├── Popup.tsx    # 主组件
+│   ├── usePopupState.ts  # 状态管理
+│   └── style.css    # Tailwind 样式
+├── inject/          # 页面注入组件
+│   ├── domScanner.ts # DOM 扫描
+│   └── ExplainModal.tsx # 解释弹窗
+├── overlay/         # 悬浮窗组件
+├── youtube/         # YouTube 字幕处理
+└── types.ts         # 类型定义
+```
+
+### 添加新功能
+
+#### 1. 添加新的消息类型
+
+**Step 1:** 在 `types.ts` 添加消息类型
+```typescript
+// apps/extension/src/types.ts
+type: "TRANSLATE" | "NEW_FEATURE" | ...;
+```
+
+**Step 2:** 在 `background.ts` 添加处理逻辑
+```typescript
+case "NEW_FEATURE": {
+  const { data } = message.payload as { data: any };
+  // 处理逻辑
+  return { success: true, data: result };
+}
+```
+
+**Step 3:** 在 `content.ts` 的 `handleMessage` 添加对应处理
+
+#### 2. 添加新的 API 端点
+
+**Step 1:** 在 `apps/api/src/routes/` 创建新路由文件
+```typescript
+// apps/api/src/routes/myfeature.ts
+const myfeatureRoute = new Hono();
+myfeatureRoute.post("/myfeature", async (c) => {
+  // 处理逻辑
+});
+export { myfeatureRoute };
+```
+
+**Step 2:** 在 `apps/api/src/index.ts` 注册路由
+```typescript
+import { myfeatureRoute } from "./routes/myfeature.ts";
+app.route("/api", myfeatureRoute);
+```
+
+#### 3. 添加新的 Web 页面
+
+在 `apps/web/src/app/` 创建新页面目录：
+```
+apps/web/src/app/newpage/page.tsx
+```
+### 项目启动
+
+```bash
+# 安装依赖
+pnpm install
+
+# 开发所有应用
+pnpm dev
+
+# 单独启动
+cd apps/api && pnpm dev      # API: http://localhost:3002
+cd apps/web && pnpm dev      # Web: http://localhost:3000
+```
+
+### 添加新的 AI Provider
+
+**Step 1:** 在 `providers/types.ts` 添加新类型
+```typescript
+type ModelType = "deepseek" | "openai" | "claude" | "gemini";
+```
+
+**Step 2:** 创建 Provider 文件
+```typescript
+// apps/api/src/providers/claude.ts
+export class ClaudeProvider extends BaseProvider {
+  name = "claude";
+  async doTranslate(text, options) { ... }
+}
+```
+
+**Step 3:** 在 `providers/index.ts` 注册
+```typescript
+const PROVIDERS: Record<ModelType, new () => AIProvider> = {
+  claude: ClaudeProvider,
+  // ...
+};
+```
+
+---
+
 ## 已完成任务
 
 | 阶段 | 任务 | 状态 |

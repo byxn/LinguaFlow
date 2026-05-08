@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -10,10 +10,19 @@ export default function SettingsPage() {
     autoTranslate: false,
     preserveTerms: true,
   });
+  const [apiKey, setApiKey] = useState("");
   const [saved, setSaved] = useState(false);
+
+  // 客户端渲染后加载 API Key
+  useEffect(() => {
+    setApiKey(localStorage.getItem("deepseekApiKey") || "");
+  }, []);
 
   async function handleSave() {
     try {
+      // 保存 API Key 到 localStorage
+      localStorage.setItem("deepseekApiKey", apiKey);
+
       const response = await fetch("/api/user/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -30,20 +39,18 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+    <div className="page-container">
+      <h1 className="page-header">⚙️ 设置</h1>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Target Language
-          </label>
+      <div className="card">
+        <div className="mb-6">
+          <label className="form-label">目标语言</label>
           <select
             value={settings.targetLanguage}
             onChange={(e) =>
               setSettings({ ...settings, targetLanguage: e.target.value })
             }
-            className="w-full border border-gray-200 rounded-lg px-4 py-2"
+            className="form-select"
           >
             <option value="zh-CN">中文 (Chinese)</option>
             <option value="en">English</option>
@@ -52,19 +59,17 @@ export default function SettingsPage() {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Translation Mode
-          </label>
-          <div className="space-y-2">
+        <div className="mb-6">
+          <label className="form-label">翻译模式</label>
+          <div className="space-y-3">
             {[
-              { value: "bilingual", label: "Bilingual", desc: "Show original and translation" },
-              { value: "replace", label: "Replace", desc: "Show only translation" },
-              { value: "hover", label: "Hover", desc: "Show on mouse hover" },
+              { value: "bilingual", label: "双语对照", desc: "同时显示原文和译文" },
+              { value: "replace", label: "仅译文", desc: "只显示翻译结果" },
+              { value: "hover", label: "悬停翻译", desc: "鼠标悬停时显示翻译" },
             ].map((option) => (
               <label
                 key={option.value}
-                className="flex items-center p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
+                className="flex items-center p-4 bg-white/50 rounded-xl cursor-pointer hover:bg-white/80 transition-all border border-gray-100"
               >
                 <input
                   type="radio"
@@ -74,10 +79,10 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setSettings({ ...settings, translationMode: e.target.value })
                   }
-                  className="mr-3"
+                  className="w-4 h-4 text-indigo-600"
                 />
-                <div>
-                  <div className="font-medium">{option.label}</div>
+                <div className="ml-3">
+                  <div className="font-medium text-gray-800">{option.label}</div>
                   <div className="text-sm text-gray-500">{option.desc}</div>
                 </div>
               </label>
@@ -85,82 +90,99 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            English Level
-          </label>
+        <div className="mb-6">
+          <label className="form-label">英语水平</label>
           <select
             value={settings.userEnglishLevel}
             onChange={(e) =>
               setSettings({ ...settings, userEnglishLevel: e.target.value })
             }
-            className="w-full border border-gray-200 rounded-lg px-4 py-2"
+            className="form-select"
           >
-            <option value="A1">A1 - Beginner</option>
-            <option value="A2">A2 - Elementary</option>
-            <option value="B1">B1 - Intermediate</option>
-            <option value="B2">B2 - Upper Intermediate</option>
-            <option value="C1">C1 - Advanced</option>
-            <option value="C2">C2 - Proficient</option>
+            <option value="A1">A1 - 入门</option>
+            <option value="A2">A2 - 基础</option>
+            <option value="B1">B1 - 中级</option>
+            <option value="B2">B2 - 中高级</option>
+            <option value="C1">C1 - 高级</option>
+            <option value="C2">C2 - 精通</option>
           </select>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-4 bg-white/50 rounded-xl mb-4">
           <div>
-            <div className="font-medium">Auto Translate</div>
+            <div className="font-medium text-gray-800">自动翻译</div>
             <div className="text-sm text-gray-500">
-              Automatically translate pages on load
+              页面加载时自动翻译
             </div>
           </div>
           <button
             onClick={() =>
               setSettings({ ...settings, autoTranslate: !settings.autoTranslate })
             }
-            className={`w-12 h-6 rounded-full transition-colors ${
-              settings.autoTranslate ? "bg-blue-500" : "bg-gray-200"
-            }`}
+            className={`toggle-track ${settings.autoTranslate ? "on" : "off"}`}
           >
             <div
-              className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
+              className={`toggle-thumb ${
                 settings.autoTranslate ? "translate-x-6" : "translate-x-0.5"
               }`}
             />
           </button>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-4 bg-white/50 rounded-xl mb-6">
           <div>
-            <div className="font-medium">Preserve Technical Terms</div>
+            <div className="font-medium text-gray-800">保留技术术语</div>
             <div className="text-sm text-gray-500">
-              Keep technical terms in original language
+              如 API、HTTP 等专业术语保持原文
             </div>
           </div>
           <button
             onClick={() =>
               setSettings({ ...settings, preserveTerms: !settings.preserveTerms })
             }
-            className={`w-12 h-6 rounded-full transition-colors ${
-              settings.preserveTerms ? "bg-blue-500" : "bg-gray-200"
-            }`}
+            className={`toggle-track ${settings.preserveTerms ? "on" : "off"}`}
           >
             <div
-              className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
+              className={`toggle-thumb ${
                 settings.preserveTerms ? "translate-x-6" : "translate-x-0.5"
               }`}
             />
           </button>
         </div>
 
+        <div className="mb-6">
+          <label className="form-label">DeepSeek API Key</label>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+            className="form-input"
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            用于调用 DeepSeek API 进行翻译，请从{" "}
+            <a
+              href="https://platform.deepseek.com/api_keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 hover:underline"
+            >
+              DeepSeek 平台
+            </a>{" "}
+            获取
+          </p>
+        </div>
+
         <button
           onClick={handleSave}
-          className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+          className="btn-primary"
         >
-          Save Settings
+          保存设置
         </button>
 
         {saved && (
-          <div className="text-center text-green-600 text-sm">
-            Settings saved successfully!
+          <div className="text-center text-emerald-600 text-sm mt-4 py-2 px-4 bg-emerald-50 rounded-lg">
+            ✓ 设置保存成功！
           </div>
         )}
       </div>

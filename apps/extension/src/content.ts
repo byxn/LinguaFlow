@@ -212,18 +212,58 @@ function setupHoverListener() {
     }
 
     const target = event.target as HTMLElement
-    const textNode = target.childNodes[0] as Text
+    if (!target) return
 
-    if (textNode?.nodeType === Node.TEXT_NODE) {
-      const text = textNode.textContent?.trim()
-      if (text && text.length > 20) {
-        void chrome.runtime.sendMessage({
-          type: "SHOW_HOVER",
-          payload: { text, element: target }
-        })
-      }
+    // 获取元素的文本内容，而不是只检查第一个子节点
+    const text = target.textContent?.trim()
+    if (!text || text.length < 3 || text.length > 500) {
+      return
     }
-  })
+
+    console.log("[ReadMind] Hover翻译请求:", text.substring(0, 50))
+
+    // 使用 async/await 方式发送消息
+    chrome.runtime.sendMessage({
+      type: "SHOW_HOVER",
+      payload: { text }
+    }).then((response) => {
+      console.log("[ReadMind] Hover响应:", response)
+      if (response?.success && response.data?.translatedText) {
+        showHoverTooltip(target, response.data.translatedText)
+      }
+    }).catch((error) => {
+      console.error("[ReadMind] Hover翻译失败:", error)
+    })
+  }, true) // 使用捕获阶段以确保能监听到所有元素
+}
+
+function showHoverTooltip(element: HTMLElement, translatedText: string) {
+  const existing = document.querySelector(".ai-hover-tooltip")
+  if (existing) existing.remove()
+
+  const tooltip = document.createElement("div")
+  tooltip.className = "ai-hover-tooltip"
+  tooltip.textContent = translatedText
+  tooltip.style.cssText = `
+    position: absolute;
+    z-index: 999999;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    max-width: 300px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    pointer-events: none;
+  `
+
+  document.body.appendChild(tooltip)
+
+  const rect = element.getBoundingClientRect()
+  tooltip.style.top = `${rect.bottom + window.scrollY + 8}px`
+  tooltip.style.left = `${rect.left + window.scrollX}px`
+
+  setTimeout(() => tooltip.remove(), 3000)
 }
 
 chrome.runtime.onMessage.addListener(handleMessage)

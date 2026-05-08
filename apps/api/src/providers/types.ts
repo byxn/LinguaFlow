@@ -8,6 +8,7 @@ export interface TranslateOptions {
   sourceLanguage?: string;
   targetLanguage?: string;
   preserveTerms?: boolean;
+  apiKey?: string;
 }
 
 export interface TranslateResult {

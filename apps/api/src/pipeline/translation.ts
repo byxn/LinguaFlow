@@ -87,15 +87,40 @@ export interface TranslationOutput {
   cached: boolean;
 }
 
+import { AIOrchestrator } from "../orchestrator/index.ts";
+
 export class TranslationPipeline {
+  private orchestrator: AIOrchestrator;
+
+  constructor() {
+    this.orchestrator = new AIOrchestrator();
+  }
+
   async process(input: TranslationInput): Promise<TranslationOutput> {
     const normalized = normalizeText(input.text);
     const chunks = splitIntoChunks(normalized);
     const language = detectLanguage(input.text);
 
+    // 实际调用 AI 进行翻译
+    const translatedChunks = await Promise.all(
+      chunks.map(async (chunk) => {
+        try {
+          const result = await this.orchestrator.translate(chunk, {
+            sourceLanguage: language,
+            targetLanguage: input.context?.targetLanguage || "zh-CN",
+            preserveTerms: input.options?.preserveTerms,
+          });
+          return result.translatedText;
+        } catch (error) {
+          console.error("Translation error:", error);
+          return `[翻译失败] ${chunk}`;
+        }
+      })
+    );
+
     return {
       originalText: input.text,
-      translatedText: chunks.join("\n\n"),
+      translatedText: translatedChunks.join("\n\n"),
       terms: [],
       cached: false,
     };
